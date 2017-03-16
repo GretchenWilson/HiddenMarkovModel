@@ -1,7 +1,7 @@
 from __future__ import division
 from copy import deepcopy
 from math import log
-from GretchenWilson_BNFO602_logfloat_2017 import log_float
+from Log_Float import log_float
 from math.pylab import *
 
 class HMM(object):
