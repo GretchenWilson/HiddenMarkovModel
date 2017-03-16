@@ -190,4 +190,59 @@ SFFFFFFFFFFFFFLLLLLLLLLLLLLLLLLLLLLLFLLFFFFFFFFF
 
         return (max((self.viterbi_table[self.sequence_len-1][state],
                 possible_paths[state]) for state in possible_paths))
+          
+    def forward(self):
+    
+        self.forward_table[0] = {'S': 1}  # Start position 0 has Fk of 1
+
+        for position in range(1, self.sequence_len):
+            prev_position = position - 1
+            prev_fks = self.forward_table[prev_position]
+            symbol = self.sequence[position]
+
+            for new_state in self.nonstart_states.keys():
+                state_position = 0
+                emission_prob = self.emissions[new_state][symbol]
+                for old_state in prev_fks:
+                    transition_prob = self.states[old_state][new_state]
+                    new_fk = prev_fks[old_state] * transition_prob
+                    state_position += new_fk
+                state_position *= emission_prob
+                self.forward_table[position][new_state] = state_position
+
+        # Here is the termination. Note that if you have iterated over position
+        return sum([self.forward_table[self.sequence_len - 1][state] for state in self.forward_table[self.sequence_len - 1]])
+
+    def backward(self):
+
+        self.backward_table[self.sequence_len-1] = {state: 1 for state in self.nonstart_states}  # Start position 0 has Fk of 1
+
+        for new_position in xrange(self.sequence_len -1, 0, -1):
+            old_position = new_position - 1
+            prev_fks = self.backward_table[new_position]
+            symbol = self.sequence[new_position]
+
+            for old_state in self.nonstart_states.keys():
+                state_position = 0
+
+                for new_state in prev_fks:
+                    emission_prob = self.emissions[new_state][symbol]
+                    transition_prob = self.states[old_state][new_state]
+                    new_fk = prev_fks[new_state] * transition_prob * emission_prob
+                    state_position += new_fk
+                    print "\n", old_state, " ->", new_state, " = ", transition_prob, prev_fks[new_state]
+
+                self.backward_table[old_position][old_state] = state_position
+
+
+        backwards_variable = 0
+        for new_state in self.backward_table[1]:
+            prev_fk = self.backward_table[1][new_state]
+            symbol = self.sequence[1]
+            emission = self.emissions[new_state][symbol]
+            transition = self.states['S'][new_state]
+            backwards_variable += transition * prev_fk * emission
+        self.backward_table[0] = backwards_variable
+
+        return self.backward_table[0]          
         
