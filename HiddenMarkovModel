@@ -1,0 +1,93 @@
+from __future__ import division
+from copy import deepcopy
+from math import log
+from GretchenWilson_BNFO602_logfloat_2017 import log_float
+from math.pylab import *
+
+class HMM(object):
+    """
+Docstring for testing HMM class
+>>> A = HMM("_14223453452666665656626646643666345263452341263")
+>>> forward_value = A.forward()
+>>> print (forward_value)
+3.68371784339e-34
+>>> viterbi_prob, MPS_path = A.viterbi()
+>>> print (viterbi_prob)
+1.58772133063e-35
+>>> print(A.sequence + '\\n' + ''.join(MPS_path))
+_14223453452666665656626646643666345263452341263
+SFFFFFFFFFFFFFLLLLLLLLLLLLLLLLLLLLLLFLLFFFFFFFFF
+1263
+"""
+
+    def __init__(self, sequence=None, states=None, emissions=None):
+
+        self.sequence = sequence
+        self.sequence_len = len(sequence)
+
+        if states:
+            self.states = states
+
+        else:
+            self.states = {
+                "S": {
+                    "F": 0.5,
+                    "L": 0.5,
+                    },
+                "F": {
+                    "F": 0.95,
+                    "L": 0.05,
+                    },
+                "L": {
+                    "L": 0.90,
+                    "F": 0.10,
+                    }
+            }
+
+        if emissions:
+            self.emissions = emissions
+        else:
+            self.emissions = {
+
+                "S":
+                    {
+                        "_": 1
+                    },
+                "F":  # 'F' indicates a fair die
+                    {
+                        "1": 1 / 6,
+                        "2": 1 / 6,
+                        "3": 1 / 6,
+                        "4": 1 / 6,
+                        "5": 1 / 6,
+                        "6": 1 / 6
+                    },
+                "L":  # 'L' indicates a loaded die
+                    {
+                        "1": 1 / 10,
+                        "2": 1 / 10,
+                        "3": 1 / 10,
+                        "4": 1 / 10,
+                        "5": 1 / 10,
+                        "6": 1 / 2
+                    }
+            }
+        self.nonstart_states = deepcopy(self.emissions)
+        del self.nonstart_states['S']
+
+        # logfloat EVERYTHING!
+        for state in self.states:
+            for transition_state in self.states[state]:
+                self.states[state][transition_state] = log_float(self.states[state][transition_state])
+
+        for state in self.emissions:
+            for emission in self.emissions[state]:
+                self.emissions[state][emission] = log_float(self.emissions[state][emission])
+
+        # Data tables necessary for this class
+        self.forward_table = [{} for k in range(self.sequence_len)]
+        self.backward_table = [{} for k in range(self.sequence_len)]     # You can define these later
+        self.viterbi_table = [{} for k in range(self.sequence_len)]
+        self.posterior_table = [{} for k in range(self.sequence_len)]
+
+        return
