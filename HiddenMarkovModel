@@ -91,3 +91,69 @@ SFFFFFFFFFFFFFLLLLLLLLLLLLLLLLLLLLLLFLLFFFFFFFFF
         self.posterior_table = [{} for k in range(self.sequence_len)]
 
         return
+
+     def train_most_likely(self, training_data):
+        """ Evaluates given training data to determine state transition and emission probabilities """
+
+        state_symbol_dict = {k: {} for k in self.transitions.keys()}
+        state_transition_dict = {k: {} for k in self.transitions.keys()}
+        total_state_transition_counts = {k: 0 for k in self.transitions.keys()}
+        total_state_emission_counts = {k: 0 for k in self.transitions.keys()}
+
+        for symbol_seq, state_seq in training_data:
+            if len(symbol_seq) != len(state_seq):
+                continue
+
+            for position in range(len(symbol_seq) - 1):
+                # set variables for this position
+
+                cur_state = state_seq[position]
+                next_state = state_seq[position + 1]
+                emitted_symbol = symbol_seq[position + 1]
+
+                # increment counts
+                total_state_transition_counts[cur_state] += 1
+                total_state_emission_counts[next_state] += 1
+                
+                try:
+                    state_symbol_dict[cur_state][emitted_symbol] += 1
+                except KeyError:
+                    state_symbol_dict[cur_state][emitted_symbol] = 0
+                try:
+                    state_transition_dict[cur_state][next_state] += 1
+                except KeyError:
+                    state_transition_dict[cur_state][next_state] = 0
+                    
+        for state in state_symbol_dict:
+        
+            for symbol in state_symbol_dict[state]:
+                if state is "S":
+                    state_symbol_dict[state][""] = 1
+                else:
+                    state_symbol_dict[state][symbol] /= total_state_emission_counts[state]
+                    
+        for state in state_transition_dict:
+        
+            for state2 in state_transition_dict[state]:
+                state_transition_dict[state][state2] /= total_state_transition_counts[state]
+
+        self.transitions = state_transition_dict
+        self.emissions = state_symbol_dict
+
+        return self.transitions, self.emissions
+        
+    def evaluate_path(self, path):
+        """Evaluates the probability of a sequence and path given the model"""
+        
+        joint_probability_of_sequence_and_path = 1
+
+        for position in range(self.sequence_len - 1):
+            old_state = path[position]
+            new_state = path[position + 1]
+
+            trans_prob = self.states[old_state][new_state]
+            emission = self.sequence[position + 1]
+            emission_prob = self.emissions[new_state][emission]
+            joint_probability_of_sequence_and_path *= trans_prob * emission_prob
+
+        return joint_probability_of_sequence_and_path
